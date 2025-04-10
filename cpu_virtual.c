@@ -14,9 +14,25 @@ bool running = true;
 #define PRN  3
 #define HLT  255
 
+// Mostrar estado actual
+void debug_state(uint8_t instr) {
+    printf("\n=== Estado CPU ===\n");
+    printf("PC: %d\n", pc);
+    printf("Instrucción: %d\n", instr);
+    for (int i = 0; i < 4; i++) {
+        printf("R%d: %d\t", i, registers[i]);
+    }
+    printf("\nMemoria (0-15): ");
+    for (int i = 0; i < 16; i++) {
+        printf("%02d ", memory[i]);
+    }
+    printf("\n==================\n");
+}
+
 void run_cpu() {
     while (running) {
         uint8_t instr = memory[pc];  // Obtener instrucción
+        debug_state(instr);          // Mostrar estado antes de ejecutarla
         switch (instr) {
             case MOV: {
                 uint8_t reg = memory[pc + 1];
@@ -51,7 +67,7 @@ void run_cpu() {
 }
 
 int main() {
-    // Cargar "programa" en memoria
+    // Cargar programa en memoria
     memory[0] = MOV;  memory[1] = 0; memory[2] = 5;     // R0 = 5
     memory[3] = MOV;  memory[4] = 1; memory[5] = 10;    // R1 = 10
     memory[6] = ADD;  memory[7] = 0; memory[8] = 1;     // R0 = R0 + R1
