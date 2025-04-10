@@ -2,27 +2,37 @@
 #include <stdint.h>
 #include <stdbool.h>
 
+#define MEM_SIZE 256
+
 // Memoria y registros
-uint8_t memory[256];      // Memoria principal
-uint8_t registers[4];     // R0, R1, R2, R3
-uint8_t pc = 0;           // Contador de programa (program counter)
+uint8_t memory[MEM_SIZE];
+uint8_t registers[4];
+uint8_t pc = 0;
 bool running = true;
+uint8_t flag_zero = 0;
 
-// Definimos opcodes
-#define MOV  1
-#define ADD  2
-#define PRN  3
-#define HLT  255
+// Opcodes
+#define MOV   1
+#define ADD   2
+#define PRN   3
+#define HLT   255
+#define SUB   4
+#define CMP   5
+#define JEQ   6
+#define JMP   7
+#define STORE 8
+#define LOAD  9
 
-// Mostrar estado actual
 void debug_state(uint8_t instr) {
     printf("\n=== Estado CPU ===\n");
     printf("PC: %d\n", pc);
     printf("Instrucción: %d\n", instr);
+    printf("Registros: ");
     for (int i = 0; i < 4; i++) {
-        printf("R%d: %d\t", i, registers[i]);
+        printf("R%d=%d ", i, registers[i]);
     }
-    printf("\nMemoria (0-15): ");
+    printf("\nFlag Zero: %d\n", flag_zero);
+    printf("Memoria (0-15): ");
     for (int i = 0; i < 16; i++) {
         printf("%02d ", memory[i]);
     }
@@ -31,13 +41,13 @@ void debug_state(uint8_t instr) {
 
 void run_cpu() {
     while (running) {
-        uint8_t instr = memory[pc];  // Obtener instrucción
-        debug_state(instr);          // Mostrar estado antes de ejecutarla
+        uint8_t instr = memory[pc];
+        debug_state(instr);
         switch (instr) {
             case MOV: {
-                uint8_t reg = memory[pc + 1];
+                uint8_t r = memory[pc + 1];
                 uint8_t val = memory[pc + 2];
-                registers[reg] = val;
+                registers[r] = val;
                 pc += 3;
                 break;
             }
@@ -48,15 +58,56 @@ void run_cpu() {
                 pc += 3;
                 break;
             }
-            case PRN: {
+            case SUB: {
+                uint8_t r1 = memory[pc + 1];
+                uint8_t r2 = memory[pc + 2];
+                registers[r1] -= registers[r2];
+                pc += 3;
+                break;
+            }
+            case CMP: {
+                uint8_t r1 = memory[pc + 1];
+                uint8_t r2 = memory[pc + 2];
+                flag_zero = (registers[r1] == registers[r2]) ? 1 : 0;
+                pc += 3;
+                break;
+            }
+            case JEQ: {
+                uint8_t addr = memory[pc + 1];
+                if (flag_zero == 1)
+                    pc = addr;
+                else
+                    pc += 2;
+                break;
+            }
+            case JMP: {
+                uint8_t addr = memory[pc + 1];
+                pc = addr;
+                break;
+            }
+            case STORE: {
                 uint8_t reg = memory[pc + 1];
-                printf("R%d = %d\n", reg, registers[reg]);
+                uint8_t addr = memory[pc + 2];
+                memory[addr] = registers[reg];
+                pc += 3;
+                break;
+            }
+            case LOAD: {
+                uint8_t reg = memory[pc + 1];
+                uint8_t addr = memory[pc + 2];
+                registers[reg] = memory[addr];
+                pc += 3;
+                break;
+            }
+            case PRN: {
+                uint8_t r = memory[pc + 1];
+                printf("Salida R%d: %d\n", r, registers[r]);
                 pc += 2;
                 break;
             }
             case HLT: {
                 running = false;
-                pc++;
+                pc += 1;
                 break;
             }
             default:
@@ -64,16 +115,4 @@ void run_cpu() {
                 running = false;
         }
     }
-}
-
-int main() {
-    // Cargar programa en memoria
-    memory[0] = MOV;  memory[1] = 0; memory[2] = 5;     // R0 = 5
-    memory[3] = MOV;  memory[4] = 1; memory[5] = 10;    // R1 = 10
-    memory[6] = ADD;  memory[7] = 0; memory[8] = 1;     // R0 = R0 + R1
-    memory[9] = PRN;  memory[10] = 0;                   // Print R0
-    memory[11] = HLT;
-
-    run_cpu();
-    return 0;
 }
