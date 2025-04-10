@@ -116,3 +116,17 @@ void run_cpu() {
         }
     }
 }
+
+int main() {
+    FILE *f = fopen("programa.bin", "rb");
+    if (!f) {
+        perror("Error abriendo programa.bin");
+        return 1;
+    }
+
+    fread(memory, sizeof(uint8_t), MEM_SIZE, f);
+    fclose(f);
+
+    run_cpu();
+    return 0;
+}
